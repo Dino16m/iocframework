@@ -1,0 +1,169 @@
+Metadata-Version: 2.1
+Name: iocframework
+Version: 1.0.0
+Summary: Read the latest Real Python tutorials
+Home-page: https://github.com/dino16m/iocframework
+Author: Dino16m
+Author-email: anselem16m@gmail.com
+License: MIT
+Description: # Documentation for IOCFramework
+        ## This project is a dependency injection frameework for python Object Oriented projects.
+        
+        ## Installation
+        
+        `pip install iocframework`
+        
+        ### Basic uses
+        - Registering a project's class dependency maps.
+        - Resolving a project's dependencies from registered dependency maps.
+        - Resolving a project's class' nested dependency, leveraging typing to instantiate dependencies that have no args constructors.
+        
+        ### Example use case
+        	from IOCFramework import get_app
+            
+            class BarService:
+            	def __init__(self):
+                	pass
+                    
+            class FooService:
+            	bar_service: BarService
+                def __init__(self, bar_service: BarService):
+                	self.bar_service = bar_service
+                    
+            class FooController:  
+        		foo_service: FooService
+        		def __init__(self, foo_service: FooService):
+            		self.foo_service = foo_service
+          	
+           	app = get_app()
+            foo_controller = app.make(FooController) # makes an instance of fooController
+            
+            
+                    
+                    
+        In the example above the dependency tree goes from `FooController` down to `BarService`, in real life it could be deeper, this package smartly resolves and instantiates FooController by going down the dependency graph. It recognizes `BarService` as a dependency of `FooService` which on its own is a dependency of the required `FooController`.
+        
+        Another use case is when you want to resolve a class but with some default values.
+        
+        ### Example use case
+        	from IOCFramework import get_app
+            
+            class BarService:
+            	def __init__(self):
+                	pass
+                    
+            class FooService:
+            	bar_service: BarService
+                def __init__(self, bar_service: BarService):
+                	self.bar_service = bar_service
+          
+          	
+           	app = get_app()
+            custom_bar_service = BarService() # custom instance of barService
+            foo_service = app.make_with(FooService, {"bar_service": custom_bar_service})
+          
+          In the example above, we created an instance of `FooService` to which we we manually injected an already created instance of its dependency `BarService` by manually creating an instance of `BarService` and passing it by parameter name to the container. This is very helpful for passing constants to class instances or when passing an object created by another class to the new class.
+          
+        Another use case is binding classes or interfaces to their implementation in the container.
+        
+        ### Example use case
+        	from IOCFramework import get_app
+            
+            class BarService:
+            	def __init__(self):
+                	pass
+             
+            class AbstractFooService:
+            	def say_foo(self):
+                	raise MethodNotImplemented
+                    
+            class FooService(AbstractFooService):
+            	bar_service: BarService
+                def __init__(self, bar_service: BarService):
+                	self.bar_service = bar_service
+                
+                def say_foo(self):
+                	return "foo"
+          
+           	app = get_app()
+            bindings = {
+            	AbstractFooService: FooService
+            }
+            app.add_bindings(bindings)
+            foo_service = app.make(AbstractFooService)
+            foo_val = foo_service.say_foo() # returns foo
+            
+          In the example above, we registered `AbstractFooService` to return an instance of `FOOService`, this pattern can be useful when a single base class has multiple different implementations for differenct use cases.
+        
+        The use case above can be extended for singletons, suppose we want our entire application to use a single instance of a very expensive class, we can use the singleton method of app; here is an example
+        
+        ### Example use case
+        	from IOCFramework import get_app
+            
+            class BarService:
+            	def __init__(self):
+                	pass
+              
+            class FooService:
+            	bar_service: BarService
+                def __init__(self, bar_service: BarService):
+                	self.bar_service = bar_service
+                    
+          	class FizzService:'
+            	bar_service: BarService
+                def __init__(self, bar_service: BarService):
+                	self.bar_service = bar_service
+                    
+           	app = get_app()
+            singletons = {
+            	BarService: BarService
+            }
+            app.add_singletons(singletons)
+            foo_service = app.make(FooService)
+            fizz_service = app.make(FizzService)
+            fizz_service.bar_service == foo_service.bar_service # True because barService is a singleton 
+        
+        There is yet another use case which adds power to the use cases above, imagine for you have a base class with multiple subclasses, with each of the subclasses serving a single service class. To resolve this, you could type the dependency on the services with their specific class implementation, locking yourself to an implementation or you could type them all with their base class and resolve them by need.
+        
+        ### Example use case
+        	from IOCFramework import get_app
+            
+            class BaseBarService:
+            	def __init__(self):
+                	pass
+                    
+            class FooBarService(BaseBarService):
+            	def __init__(self):
+                	pass
+                    
+            class FizzBarService(BaseBarService):
+            	def __init__(self):
+                	pass
+                    
+            class FooService:
+            	bar_service: BaseBarService
+                def __init__(self, bar_service: BaseBarService):
+                	self.bar_service = bar_service
+                    
+          	class FizzService:'
+            	bar_service: BaseBarService
+                def __init__(self, bar_service: BaseBarService):
+                	self.bar_service = bar_service
+                    
+           	app = get_app()
+           	app.when(FizzService, needs=BaseBarService, give=FizzBarService) # give can also be a callable which returns an instance of the service in question
+        	app.when(FooService, needs=BaseBarService, give=FooBarService)
+            fizz_service = app.make(FizzService)
+            foo_service = app.make(FooService)
+            
+            isinstance(fizz_service.bar_service, FizzBarService) # True
+            
+            isinstance(foo_service.bar_service, FooBarService) # True
+        
+        This project is based on Laravel's IOC container.
+            
+Platform: UNKNOWN
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.7
+Description-Content-Type: text/markdown

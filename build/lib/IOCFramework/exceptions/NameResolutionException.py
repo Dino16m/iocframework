@@ -1,0 +1,2 @@
+class NameResolutionException(Exception):
+    pass
